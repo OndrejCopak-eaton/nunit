@@ -39,12 +39,26 @@ namespace NUnit.Framework.Internal.Execution
 
         private const int WAIT_FOR_FORCED_TERMINATION = 5000;
 
+        public WorkItem TopLevelWorkItem => _topLevelWorkItem;
+
         private WorkItem _topLevelWorkItem;
         private readonly Stack<WorkItem> _savedWorkItems = new Stack<WorkItem>();
 
         private readonly List<CompositeWorkItem> _activeWorkItems = new List<CompositeWorkItem>();
 
         #region Events
+
+        public delegate void WorkDispatchEvent(WorkItem item);
+
+        /// <summary>
+        /// Event raised right before a work item is dispatched
+        /// </summary>
+        public event WorkDispatchEvent BeforeWorkDispatched;
+
+        /// <summary>
+        /// Event raised right after a work item is dispatched
+        /// </summary>
+        public event WorkDispatchEvent AfterWorkDispatched;
 
         /// <summary>
         /// Event raised whenever a shift is starting.
@@ -204,6 +218,7 @@ namespace NUnit.Framework.Internal.Execution
         private void Dispatch(WorkItem work, ParallelExecutionStrategy strategy)
         {
             log.Debug("Using {0} strategy for {1}", strategy, work.Name);
+            BeforeWorkDispatched?.Invoke(work);
 
             // Currently, we only track CompositeWorkItems - this could be expanded
             var composite = work as CompositeWorkItem;
@@ -233,6 +248,8 @@ namespace NUnit.Framework.Internal.Execution
                         NonParallelQueue.Enqueue(work);
                     break;
             }
+
+            AfterWorkDispatched?.Invoke(work);
         }
 
         /// <summary>
